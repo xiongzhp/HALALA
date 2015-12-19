@@ -1,0 +1,24 @@
+{
+  "name": "hualala",
+  "version": "1.0.0",
+  "description": "An unmanned robotic boat which can track you with computer vision",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.oschina.net/ericxiong/hualala.git"
+  },
+  "keywords": [
+    "computer_vision",
+    "tracking"
+  ],
+  "author": "Erik Xiong",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.3",
+    "serialport": "^2.0.5",
+    "socket.io": "^1.3.6"
+  }
+}

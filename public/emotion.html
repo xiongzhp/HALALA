@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>Emointor</title>
+        <meta charset="utf-8">
+         
+         <link type="text/css" rel="stylesheet" href="stylesheets/materialize.css"  media="screen,projection"/> 
+          
+        <style>
+            
+            body {
+                background-color:#ff5252;
+                margin: 0px auto;                
+            }
+
+            #overlay {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                -o-transform : scaleX(-1);
+                -webkit-transform : scaleX(-1);
+                transform : scaleX(-1);
+                -ms-filter : fliph; /*IE*/
+                filter : fliph; /*IE*/
+                width : 600px;
+                height : 450px;
+            }
+
+            #videoel {
+                -o-transform : scaleX(-1);
+                -webkit-transform : scaleX(-1);
+                transform : scaleX(-1);
+                -ms-filter : fliph; /*IE*/
+                filter : fliph; /*IE*/
+                -o-border-radius:30px;
+                -webkit-border-radius:30px;
+                border-radius:30px;
+                width : 600px;
+                height : 450px;
+            }
+            
+            #container {
+                position : relative;
+                width : 600px;
+                /*margin : 0px auto;*/
+            }
+            
+            #content {              
+                margin-left : auto;
+                margin-right : auto;
+                max-width: 600px;
+            }
+            
+            #sketch, #filter {
+                display: none;
+            }
+            
+            
+            .btn {
+                font-size: 16px;
+            }
+
+            #controls {   
+                text-align: center;
+            }
+
+            #emotion_container {
+                width: 600px;
+            }
+
+            #emotion_icons {
+                height: 50px;
+                /*padding-left: 30px;*/
+            }
+
+            .emotion_icon {
+                width : 40px;
+                height : 40px;
+                margin-top: 5px;
+                /*margin-left : 13px;*/
+                /*margin-left : 35px;*/
+            }
+            #icon1{
+                margin-left:-5px; 
+            }
+            #icon2{
+                margin-left:140px;
+            }
+            #icon3{
+                margin-left:135px;
+            }
+
+            #emotion_chart, #emotion_icons {
+                margin: 0 auto;
+                width : 400px;
+            }
+
+            #icon1, #icon2, #icon3 {
+                visibility :hidden;
+            }
+
+            /* d3 */
+            .bar {
+                fill : steelblue;
+                fill-opacity : .9;
+            }
+.col.happy {
+  /*border: 1px solid #eee;*/
+  margin: 7px 0;
+  text-align: center;
+  line-height: 5px;
+  font-size: 15px;
+  background-color: red;
+  color: white;
+  padding: 0;
+}
+.col.unhappy {
+  /*border: 1px solid #eee;*/
+  margin: 7px 0;
+  text-align: center;
+  line-height: 5px;
+  font-size: 15px;
+  background-color: blue;
+  color: white;
+  padding: 0;
+}
+.col.surprise {
+  /*border: 1px solid #eee;*/
+  margin: 7px 0;
+  text-align: center;
+  line-height: 5px;
+  font-size: 15px;
+  background-color: green;
+  color: white;
+  padding: 0;
+}            
+        </style>
+    </head>
+    <body >
+        <script src="javascripts/utils.js"></script>
+        <script src="javascripts/emonitor.min.js"></script>
+        <script src="javascripts/model_pca_20_svm_emotionDetection.js"></script>
+        <script src="javascripts/Stats.js"></script>
+        <script src="javascripts/d3.min.js"></script>
+        <script src="javascripts/emotion_classifier.js"></script>
+        <script src="javascripts/emotionmodel.js"></script>
+        <script src="assets/socket.io.min.js"></script>
+        <script type="text/javascript" src="javascripts/smoothie.js"></script>
+        <script type="text/javascript" src="javascripts/jquery.min.js"></script>
+        <nav>
+            <div class="nav-wrapper">
+              <a href="#" class="brand-logo center"><img src="images/logo_small.png"><span style="position:relative; bottom:8px">Emonitor</span></a>
+              <ul id="nav-mobile" class="hide-on-med-and-down">
+                <li class="right"><a class="modal-trigger" href="#modal1"><i class="mdi-action-account-child"></i></a></li>
+                <li class="left"><a class="modal-trigger" href="#modal2"><i class="mdi-action-assignment"></i></a></li>
+              </ul>
+            </div>
+        </nav>
+        
+
+        <div id="content">
+            <div id="container">
+                <video id="videoel" width="400" height="300" preload="auto" loop class=" z-depth-1" >               
+                </video>
+                <canvas id="overlay" width="400" height="300"></canvas>
+                <canvas id="sketch" width="400" height="300"></canvas>
+                <div id="controls">
+                    <a id="startbutton" class="waves-effect waves-light btn" onclick="startVideo()">Start</a>
+                </div>
+            </div>  
+            
+            <div id="emotion_container">
+                <div id="emotion_icons">
+                    <img class="emotion_icon" id="icon1" src="media/icon_sad.png">
+                    <img class="emotion_icon" id="icon2" src="media/icon_happy.png">
+                    <img class="emotion_icon" id="icon3" src="media/icon_surprised.png">
+                </div>
+                <div id='emotion_chart'></div>
+                <div class="row">
+                    <div class="col s4 unhappy">Unhappy</div>
+                    <div class="col s4 happy">Happy</div>
+                    <div class="col s4 surprise">Surprise</div>
+                </div> 
+                <canvas id="emonitor" width="600" height="100"></canvas>                               
+            </div>
+        </div>
+
+  <!-- Modal Structure -->
+  <div id="modal1" class="modal">
+    <div class="modal-content">
+      <div class="col s12 m8 offset-m2 l6 offset-l3">
+        <div class="card-panel grey lighten-5 z-depth-1">
+          <div class="row valign-wrapper">
+            <div class="col s4">
+              <img src="images/xiong1.jpg" alt="" class="circle responsive-img"> 
+            </div>
+            <div class="col s10">
+              <span class="black-text">
+                <span class="mdi-social-person red-text accent-2"> Name:  </span><a href="http://www.emonitor.me/ErikXiong.html">Erik Xiong</a><br>
+                <span class="mdi-social-school red-text accent-2"> Company:  </span>SIMM, Chinese Academy of Sciences<br>
+                <span class="mdi-action-book red-text accent-2"> Role:  </span>Engineer, Data Science Graduate Student<br>
+                <span class="mdi-action-extension red-text accent-2"> Skills &amp; Hobbies:  </span>Data Visualization, Nodejs, Computer Vision, Raspberry Pi, Intel Edison, Arduino<br>
+                <span class="mdi-communication-email red-text accent-2"> Email:  </span>xiongzhp@outlook.com<br>
+              </span>
+            </div>
+          </div>
+
+          <div class="row valign-wrapper">
+            <div class="col s4">
+              <img src="images/Tao.jpg" alt="" class="circle responsive-img"> <!-- notice the "circle" class -->
+            </div>
+            <div class="col s10">
+              <span class="black-text">
+                <span class="mdi-social-person red-text accent-2"> Name:  </span>Tony Zhong<br>
+                <span class="mdi-social-school red-text accent-2"> Company:  </span>SIMM, Chinese Academy of Sciences<br>
+                <span class="mdi-action-book red-text accent-2"> Role:  </span>Designer, Pharmaceutics Graduate Student<br>
+                <span class="mdi-action-extension red-text accent-2"> Skills &amp; Hobbies:  </span>Google Materia Design, SketchUp, 3D printing, Solidworks, AI, Final Cut<br>
+                <span class="mdi-communication-email red-text accent-2"> Email:  </span>575313339@qq.com
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class=" modal-action modal-close waves-effect waves-green btn-flat">close</a>
+    </div>
+  </div>
+    <!-- Modal Structure -->
+  <div id="modal2" class="modal modal-fixed-footer">
+    <div class="modal-content">
+      <h5>Instructions</h5>
+      <p>1) Allow the request to use your webcam (if the request didnot pop up, close current tab, reload the page in a different tab) .</p>
+      <p>2) Click Start!</p>
+      <p>3) Our program will capture your face and rate your emotions in real-time.</p>
+      <p>4) Try to move your head when the face shape model does not fit your face well.</p>
+      <video width=100% class="responsive-video" controls autoplay="autoplay" loop="loop">
+        <source src="demo.mp4" type="video/mp4">
+      </video>
+      <a href="http://www.emonitor.me/howitworks">Take a look at how it works.</a>      
+      <h5>What we have Done</h5>
+      <p>This is a javascript implementation of face tracking and emotion detection, we built it with nodejs, emit extreme emotions with socket.io and store realtime quantified emotion data into mongodb. </p>
+      <p>In addition, we figure out the mean of each quantified emotion(unhappy, happy, surprise) and the counts of extreme emotions in every minute, hours, or time span you set using mapreduce. </p>
+      <p>Above all, we induced a new concept, Emotion Index, to measure the level of your emotions, which is calculated in combination of the quantified mean emotions and the counts of extreme emotions.</p><br>
+      <h5>To-Do</h5>      
+      <p>We made it run smoothly on Intel Edison and Raspeberry Pi, and we will get use of GPIO to make the hardware interact with you whenever extreme emotions are detected.</p>
+      <img src="images/edison.jpg" style="max-width:100%;">
+      <p>We also plan to make an easy access hardware, which is capable of collecting as much emotion data as possible. For one thing, with the hardware, we can easily collect emotion data from people with psychological problems every day in psychology research, so we can get better understanding of mental disorders, like autism, depression and anxiety. For another, we can apply it in shopping mall for realtime feedback of products from visitors.</p>
+      <p>What's your ideas? Contact us xiongzhp@outlook.com.</p>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+    </div>
+  </div>
+            <script>
+                var vid = document.getElementById('videoel');
+                var overlay = document.getElementById('overlay');
+                var overlayCC = overlay.getContext('2d');
+                
+                /********** check and set up video/webcam **********/
+
+                function enablestart() {
+                    var startbutton = document.getElementById('startbutton');
+                    startbutton.value = "start";
+                    startbutton.disabled = null;
+                }
+                
+                
+                navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
+
+                // check for camerasupport
+                if (navigator.getUserMedia) {
+                    // set up stream
+                    
+                    var videoSelector = {video : true};
+                    if (window.navigator.appVersion.match(/Chrome\/(.*?) /)) {
+                        var chromeVersion = parseInt(window.navigator.appVersion.match(/Chrome\/(\d+)\./)[1], 10);
+                        if (chromeVersion < 20) {
+                            videoSelector = "video";
+                        }
+                    };
+                
+                    navigator.getUserMedia(videoSelector, function( stream ) {
+                        if (vid.mozCaptureStream) {
+                            vid.mozSrcObject = stream;
+                        } else {
+                            vid.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
+                        }
+                        vid.play();
+                    }, function() {
+                        //insertAltVideo(vid);
+                        alert("There was some problem trying to fetch video from your webcam. If you have a webcam, please make sure to accept when the browser asks for access to your webcam.");
+                    });
+                } else {
+                    //insertAltVideo(vid);
+                    alert("This demo depends on getUserMedia, which your browser does not seem to support. :(");
+                }
+
+                vid.addEventListener('canplay', enablestart, false);
+                
+                /*********** setup of emotion detection *************/
+
+                var ctrack = new clm.tracker({useWebGL : true});
+                ctrack.init(pModel);
+
+                function startVideo() {
+                    // start video
+                    vid.play();
+                    startbutton.style.display="none";
+                    // start tracking
+                    ctrack.start(vid);
+                    // start loop to draw face
+                    var stopit = 1;
+                    drawLoop(stopit);
+                    //monitor 
+                    var strokecolor= ["rgb(0, 0, 255)","rgb(255, 0, 0)","rgb(0, 255, 0)"];
+                    var line0 = new TimeSeries();
+                    var line1 = new TimeSeries();
+                    var line2 = new TimeSeries();
+                    //emit extreme
+                    var socket = io.connect();                  
+                    setInterval(function() {
+
+                        line0.append(new Date().getTime(), lineplot0);
+                        line1.append(new Date().getTime(), lineplot1);
+                        line2.append(new Date().getTime(), lineplot2);
+
+                        if (lineplot0 > 0.18) {
+                        socket.emit('emoji',"168,");
+                        }
+                        if (lineplot1 > 0.5) {
+                        socket.emit('emoji',"188,");
+                        console.log("happy");
+                        }
+                        if (lineplot2 > 0.4) {
+                        socket.emit('emoji',"158,");
+                        }
+
+                    }, 1000);
+                    var smoothie = new SmoothieChart({ grid: { strokeStyle: 'rgb(125, 0, 0)', fillStyle: 'rgb(60, 0, 0)', lineWidth: 1, millisPerLine: 250, verticalSections: 6 } });
+                    smoothie.addTimeSeries(line0, { strokeStyle: strokecolor[0], lineWidth: 2 });
+                    smoothie.streamTo(document.getElementById("emonitor"), 1000);
+                    smoothie.addTimeSeries(line1, { strokeStyle: strokecolor[1], lineWidth: 2 });
+                    smoothie.streamTo(document.getElementById("emonitor"), 1000);
+                    smoothie.addTimeSeries(line2, { strokeStyle: strokecolor[2], lineWidth: 2 });
+                    smoothie.streamTo(document.getElementById("emonitor"), 1000);
+                }
+                
+                function drawLoop() {
+                        requestId = window.requestAnimFrame(drawLoop);
+                        overlayCC.clearRect(0, 0, 400, 300);
+                        // var escore = "score :" + ctrack.getScore().toFixed(4);
+                        if (ctrack.getCurrentPosition()) {
+                            ctrack.draw(overlay);
+                        }
+                        var cp = ctrack.getCurrentParameters(); 
+                        var er = ec.meanPredict(cp);
+                        
+                        if (er) {
+                            lineplot0 = er[0].value;
+                            lineplot1 = er[1].value;
+                            lineplot2 = er[2].value;
+                            updateData(er);
+
+                            for (var i = 0;i < er.length;i++) {
+                                if (er[i].value > 0.4) {
+                                    document.getElementById('icon'+(i+1)).style.visibility = 'visible';
+                                } else {
+                                    document.getElementById('icon'+(i+1)).style.visibility = 'hidden';
+                                }
+
+                            }
+
+                        }
+                  }
+                function stoploop () {
+                    if (requestId) {
+                       window.cancelAnimationFrame(requestId);
+                       requestId = undefined;
+                       window.close();
+                    }
+                }
+                
+                /*** emonitor ***/
+                // function emonitor(){
+
+                // }
+
+                var ec = new emotionClassifier();
+                ec.init(emotionModel);
+                var emotionData = ec.getBlank();    
+                
+                /************ d3 code for barchart *****************/
+
+                var margin = {top : 20, right : 0, bottom : 10, left : 0},
+                    width = 400 - margin.left - margin.right,
+                    height = 100 - margin.top - margin.bottom;
+
+                var barWidth = 30;
+
+                var formatPercent = d3.format(".0%");
+                
+                var x = d3.scale.linear()
+                    .domain([0, 3]).range([0, 550]);
+
+                var y = d3.scale.linear()
+                    .domain([0,1]).range([0, height]);
+
+                var svg = d3.select("#emotion_chart").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                
+                svg.selectAll("rect").
+                  data(emotionData).
+                  enter().
+                  append("svg:rect").
+                  attr("x", function(datum, index) { return x(index); }).
+                  attr("y", function(datum) { return height - y(datum.value); }).
+                  attr("height", function(datum) { return y(datum.value); }).
+                  attr("width", barWidth).
+                  attr("fill", "#2d578b");
+
+                svg.selectAll("text.labels").
+                  data(emotionData).
+                  enter().
+                  append("svg:text").
+                  attr("x", function(datum, index) { return x(index) + barWidth; }).
+                  attr("y", function(datum) { return height - y(datum.value); }).
+                  attr("dx", -barWidth/2).
+                  attr("dy", "1.2em").
+                  attr("text-anchor", "middle").
+                  text(function(datum) { return datum.value;}).
+                  attr("fill", "white").
+                  attr("class", "labels");
+                
+
+                function updateData(data) {
+                    // update
+                    var rects = svg.selectAll("rect")
+                        .data(data)
+                        .attr("y", function(datum) { return height - y(datum.value); })
+                        .attr("height", function(datum) { return y(datum.value); });
+                    var texts = svg.selectAll("text.labels")
+                        .data(data)
+                        .attr("y", function(datum) { return height - y(datum.value); })
+                        .text(function(datum) { return datum.value.toFixed(1);});
+
+                    // enter 
+                    rects.enter().append("svg:rect");
+                    texts.enter().append("svg:text");
+
+                    // exit
+                    rects.exit().remove();
+                    texts.exit().remove();
+                }
+
+                /******** stats ********/
+
+                stats = new Stats();
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.top = '0px';
+                document.getElementById('container').appendChild( stats.domElement );
+
+                // update stats on every iteration
+                document.addEventListener('clmtrackrIteration', function(event) {
+                    stats.update();
+                }, false);
+
+
+            </script>
+        </div>
+    
+
+    </body>
+<!-- <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script> -->
+<script type="text/javascript" src="javascripts/materialize.min.js"></script>
+<script>
+ $(document).ready(function(){
+    $('ul.tabs').tabs();
+    // the "href" attribute of .modal-trigger must specify the modal ID that wants to be triggered
+    $('.modal-trigger').leanModal();
+  });
+</script>
+
+</html>
